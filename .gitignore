@@ -173,3 +173,9 @@ cython_debug/
 # File by generated
 *.txt
 *.csv
+
+# VScode
+.vscode
+
+# Test File
+*test*.py
