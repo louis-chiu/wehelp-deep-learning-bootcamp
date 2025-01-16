@@ -276,3 +276,51 @@ class Line:
             return False
 
         return self.point_1 == other.point_1 and self.point_2 == other.point_2
+
+
+class Circle:
+    """A class to represent a circle in a 2D space.
+
+    Attributes:
+        center (Point): The center point of the circle.
+        radius (Decimal): The radius of the circle.
+        area (Decimal): The area of the circle.
+
+    Methods:
+        has_intersection(other: Circle) -> bool:
+            Check if the circle has an intersection with another circle.
+    """
+
+    def __init__(self, center: Point, radius: Number):
+        self._center: Point = center
+        self._radius: Decimal = Decimal(f"{radius}")
+
+        self._area = None
+
+    @property
+    def center(self) -> Point:
+        return self._center
+
+    @center.setter
+    def center(self, center: Point):
+        self._center = center
+
+    @property
+    def radius(self) -> Decimal:
+        return self._radius
+
+    @radius.setter
+    def radius(self, radius: Number):
+        self._area = None
+        self._radius = Decimal(f"{radius}")
+
+    @cached_property
+    def area(self) -> Decimal:
+        if self._area is None:
+            self._area = Decimal(f"{math.pi * self.radius**2}")
+            return self._area
+
+        return self._area
+
+    def has_intersection(self, other: Self) -> bool:
+        return self.center.distance_to(other.center) < (self.radius + other.radius)
