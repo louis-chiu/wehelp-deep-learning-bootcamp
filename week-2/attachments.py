@@ -2,6 +2,8 @@ from typing import TypeVar, Self, Any
 
 from decimal import Decimal, getcontext, ROUND_HALF_UP
 
+import math
+
 from functools import cached_property
 
 context = getcontext()
@@ -10,6 +12,26 @@ Number = TypeVar("Number", int, float, Decimal)
 
 
 class Point:
+    """A class to represent a point in a 2D space.
+    Attributes:
+        x (Decimal): The x-coordinate of the point.
+        y (Decimal): The y-coordinate of the point.
+    Methods:
+        delta_x(other: Point) -> Decimal:
+            Calculate the difference in the x-coordinates between this point and another point.
+        x_distance_to(other: Point) -> Decimal:
+            Calculate the absolute difference in the x-coordinates between this point and another point.
+        delta_y(other: Point) -> Decimal:
+            Calculate the difference in the y-coordinates between this point and another point.
+        y_distance_to(other: Point) -> Decimal:
+            Calculate the absolute difference in the y-coordinates between this point and another point.
+        distance_to(other: Point) -> Decimal:
+            Calculate the distance from this point to another point.
+        __eq__(other: Any) -> bool:
+            Check if this point is equal to another point.
+        __repr__() -> str:
+            Return a string representation of the point."""
+
     def __init__(self, x: Number, y: Number) -> None:
         self._x: Decimal = Decimal(f"{x}")
         self._y: Decimal = Decimal(f"{y}")
@@ -77,13 +99,13 @@ class Point:
 
 class Line:
     """A class to represent a line segment defined by two points.
-    
+
     Attributes:
         point_1 (Point): The first point of the line segment.
         point_2 (Point): The second point of the line segment.
         slope (Decimal | None): The slope of the line segment.
         line_coefficients (tuple[Decimal, Decimal, Decimal]): The coefficients (A, B, C) of the line equation Ax + By = C.
-        
+
     Methods:
         is_parallel_to(other: Self) -> bool:
             Check if the line segment is parallel to another line segment.
@@ -103,33 +125,39 @@ class Line:
             Check if the line segment has an intersection with another line segment."""
 
     def __init__(self, point_1: Point, point_2: Point) -> None:
+        if point_1 == point_2:
+            raise ValueError("The two points of a line segment must be distinct.")
+
         self._point_1: Point = point_1
         self._point_2: Point = point_2
 
-        self._slope = None
-        self._line_coefficients = None
+        self._slope: Decimal | None = None
+        self._line_coefficients: tuple[Decimal, Decimal, Decimal] | None = None
 
     @property
     def point_1(self) -> Point:
         return self._point_1
 
     @point_1.setter
-    def point_1(self, a: Point):
+    def point_1(self, point: Point):
         self._line_coefficients = None
         self._slope = None
 
-        self._point_1 = a
+        self._point_1 = point
 
     @property
     def point_2(self) -> Point:
         return self._point_2
 
     @point_2.setter
-    def point_2(self, b: Point):
+    def point_2(self, point: Point):
+        if self.point_1 == point:
+            raise ValueError("The two points of a line segment must be distinct.")
+
         self._line_coefficients = None
         self._slope = None
 
-        self._point_2 = b
+        self._point_2 = point
 
     @cached_property
     def slope(self) -> Decimal | None:
@@ -138,7 +166,7 @@ class Line:
         If the line is vertical (delta_x is 0), the function returns None.
 
         Returns:
-            Decimal | None: The slope of the line as a Decimal object, or None if the points are the same or the line is vertical.
+            Decimal | None: The slope of the line as a Decimal object, or None if the line is vertical.
         """
 
         if self._slope is None:
@@ -147,7 +175,7 @@ class Line:
             if b == 0:
                 return None
 
-            return -a / b
+            self._slope = -a / b
 
         return self._slope
 
@@ -165,7 +193,7 @@ class Line:
             a = self.point_2.delta_y(self.point_1)
             b = self.point_1.delta_x(self.point_2)
             c = a * self.point_1.x + b * self.point_1.y
-            return a, b, c
+            self._line_coefficients = a, b, c
 
         return self._line_coefficients
 
@@ -173,13 +201,22 @@ class Line:
         return self.slope == other.slope
 
     def is_perpendicular_to(self, other: Self) -> bool:
-        if self.slope == 0:
+        if self.slope is None:
+            return other.slope == 0
+        elif self.slope == 0:
             return other.slope is None
 
         return False
 
     def is_within_bounds(self, point: Point) -> bool:
-        """Check if a point is within the bounds of the line segment."""
+        """Check if a point is within the bounds of the line segment.
+
+        Args:
+            point (Point): The point to check.
+
+        Returns:
+            bool: True if the point is within the bounds, False otherwise.
+        """
 
         return min(self.point_1.x, self.point_2.x) <= point.x <= max(
             self.point_1.x, self.point_2.x
@@ -188,9 +225,12 @@ class Line:
         )
 
     def contains_point(self, point: Point) -> bool:
-        return self.is_within_bounds(point) and self.slope == (
-            point.y - self.point_1.y
-        ) / (point.x - self.point_1.x)
+        if point.x == self.point_1.x:
+            return self.is_within_bounds(point) and self.slope is None
+        else:
+            return self.is_within_bounds(point) and self.slope == (
+                point.y - self.point_1.y
+            ) / (point.x - self.point_1.x)
 
     def contains_line(self, line: Self) -> bool:
         return (
@@ -232,7 +272,7 @@ class Line:
         return f"Line({self.point_1}, {self.point_2})"
 
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, Line):
+        if not isinstance(other, Line):
             return False
 
-        return self.point_1 == other.point_1 and self.point_2 == self.point_2
+        return self.point_1 == other.point_1 and self.point_2 == other.point_2
