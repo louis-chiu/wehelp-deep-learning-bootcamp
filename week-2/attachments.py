@@ -1,7 +1,7 @@
 from typing import TypeVar, Self, Any
 
 from decimal import Decimal, getcontext, ROUND_HALF_UP
-
+from abc import ABC
 import math
 
 from itertools import combinations
@@ -11,6 +11,7 @@ context = getcontext()
 Number = TypeVar("Number", int, float, Decimal)
 
 
+# Task 1
 class Point:
     """A class to represent a point in a 2D space.
     Attributes:
@@ -87,6 +88,15 @@ class Point:
             .sqrt(context)
             .quantize(Decimal(".000"), ROUND_HALF_UP)
         )
+
+    def __add__(self, other: Any) -> Self:
+        if not isinstance(other, Vector):
+            raise TypeError(
+                f"Unsupported operand type(s) for +: 'Point' and '{type(other).__name__}'"
+            )
+        self.x += other.x_offset
+        self.y += other.y_offset
+        return self
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Point):
@@ -334,6 +344,9 @@ class Circle:
     def has_intersection(self, other: Self) -> bool:
         return self.center.distance_to(other.center) < (self.radius + other.radius)
 
+    def contains(self, other: Point) -> bool:
+        return self.center.distance_to(other) <= self.radius
+
 
 class Polygon:
     def __init__(self, point_1: Point, point_2: Point, point_3: Point, point_4: Point):
@@ -399,18 +412,26 @@ class Polygon:
         )
 
 
-def main():
-    # Task 1
+def task_1():
+    COLOR_CODE: str = "\033[31m"
+    COLOR_RESET_CODE: str = "\033[0m"
+
     line_a = Line(Point(-6, 1), Point(2, 4))
     line_b = Line(Point(-6, -1), Point(2, 2))
     line_c = Line(Point(-4, -4), Point(-1, 6))
-    print(f"Are Line A and Line B parallel? {line_a.is_parallel_to(line_b)}")
-    print(f"Are Line C and Line A perpendicular? {line_c.is_perpendicular_to(line_a)}")
+    print(
+        f"Are Line A and Line B parallel? {COLOR_CODE}{line_a.is_parallel_to(line_b)}{COLOR_RESET_CODE}"
+    )
+    print(
+        f"Are Line C and Line A perpendicular? {COLOR_CODE}{line_c.is_perpendicular_to(line_a)}{COLOR_RESET_CODE}"
+    )
 
     circle_a = Circle(Point(6, 3), 2)
     circle_b = Circle(Point(8, 1), 1)
-    print(f"Print the area of Circle A. {circle_a.area}")
-    print(f"Do Circle A and Circle B intersect? {circle_a.has_intersection(circle_b)}")
+    print(f"Print the area of Circle A. {COLOR_CODE}{circle_a.area}{COLOR_RESET_CODE}")
+    print(
+        f"Do Circle A and Circle B intersect? {COLOR_CODE}{circle_a.has_intersection(circle_b)}{COLOR_RESET_CODE}"
+    )
 
     polygon_a = Polygon(
         Point(-1, -2),
@@ -418,9 +439,200 @@ def main():
         Point(5, -1),
         Point(4, -4),
     )
-    print(f"Print the perimeter of Polygon A. {polygon_a.perimeter}")
-    
-    
+    print(
+        f"Print the perimeter of Polygon A. {COLOR_CODE}{polygon_a.perimeter}{COLOR_RESET_CODE}"
+    )
+
+
+# Task 2
+class Vector:
+    def __init__(self, x_offset: Number, y_offset: Number):
+        self._x_offset: Decimal = Decimal(f"{x_offset}")
+        self._y_offset: Decimal = Decimal(f"{y_offset}")
+
+    @property
+    def x_offset(self) -> Decimal:
+        return self._x_offset
+
+    @x_offset.setter
+    def x_offset(self, x_offset: Number):
+        self._x_offset = Decimal(f"{x_offset}")
+
+    @property
+    def y_offset(self) -> Decimal:
+        return self._y_offset
+
+    @y_offset.setter
+    def y_offset(self, y_offset: Number):
+        self._y_offset = Decimal(f"{y_offset}")
+
+    def __add__(self, other: Any) -> Self | Point:
+        if isinstance(other, Vector):
+            self.x_offset += other.x_offset
+            self.y_offset += other.y_offset
+            return self
+        elif isinstance(other, Point):
+            other.x += self.x_offset
+            other.y += self.y_offset
+            return other
+        raise TypeError(
+            f"Unsupported operand type(s) for +: 'Point' and '{type(other).__name__}'"
+        )
+
+    def __mul__(self, other: Any) -> Self:
+        if not isinstance(other, int):
+            raise TypeError(
+                f"Unsupported operand type(s) for +: 'Point' and '{type(other).__name__}'"
+            )
+        self.x_offset *= other
+        self.y_offset *= other
+        return self
+
+
+class Location(Point):
+    def __init__(self, x: int, y: int):
+        super().__init__(x, y)
+
+    def __repr__(self) -> str:
+        return f"({self.x:>3}, {self.y:>3})"
+
+
+class Enemy:
+    def __init__(self, name: str, location: Location, vector: Vector):
+        self._name: str = name
+        self._location: Location = location
+        self._vector: Vector = vector
+
+        self._points: int = 10
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def points(self) -> int:
+        return self._points
+
+    @points.setter
+    def points(self, points: int):
+        self._points = points
+
+    @property
+    def location(self) -> Location:
+        return self._location
+
+    @location.setter
+    def location(self, location: Location):
+        self._location = location
+
+    @property
+    def vector(self) -> Decimal:
+        return self._vector
+
+    def is_alive(self) -> bool:
+        return self.points > 0
+
+    def move(self, times: int = 1) -> Location:
+        self.location = self.location + self.vector * times
+        return self.location
+
+
+class DefenseRange(Circle):
+    def __init__(self, location: Location, range: int):
+        super().__init__(location, range)
+
+    @property
+    def location(self):
+        return super().center
+
+    @property
+    def range(self):
+        return super().radius
+
+
+class Tower(ABC):
+    def __init__(self, name: str, power: int, defense_range: DefenseRange):
+        self._name: str = name
+        self._power: int = power
+        self._defense_range: DefenseRange = defense_range
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def power(self) -> int:
+        return self._power
+
+    @property
+    def defense_range(self) -> Circle:
+        return self._defense_range
+
+    def search_alive_enemies_within_range(self, enemies: list[Enemy]) -> list[Enemy]:
+        return [
+            enemy
+            for enemy in enemies
+            if self.defense_range.contains(enemy.location) and enemy.is_alive()
+        ]
+
+    def attack_all(self, enemies: list[Enemy]):
+        for enemy in enemies:
+            enemy.points = enemy.points - self.power
+
+
+class BasicTower(Tower):
+    def __init__(self, name: str, location: Location):
+        super().__init__(name, 1, DefenseRange(location, 2))
+
+
+class AdvancedTower(Tower):
+    def __init__(self, name: str, location: Location):
+        super().__init__(name, 2, DefenseRange(location, 4))
+
+
+def task_2():
+    print(f"=========={' Task2 Game Start ':^18}==========")
+
+    enemies = [
+        Enemy("E1", Location(-10, 2), Vector(2, -1)),
+        Enemy("E2", Location(-8, 0), Vector(3, 1)),
+        Enemy("E3", Location(-9, -1), Vector(3, 0)),
+    ]
+
+    towers = [
+        BasicTower("T1", Location(-3, 2)),
+        BasicTower("T2", Location(-1, -2)),
+        BasicTower("T3", Location(4, 2)),
+        BasicTower("T4", Location(7, 0)),
+        AdvancedTower("A1", Location(1, 1)),
+        AdvancedTower("A2", Location(4, -3)),
+    ]
+
+    for _ in range(10):
+        alive_enemies = [enemy for enemy in enemies if enemy.is_alive()]
+        for alive_enemy in alive_enemies:
+            alive_enemy.move()
+
+        for tower in towers:
+            detected_enemies = tower.search_alive_enemies_within_range(alive_enemies)
+            if len(detected_enemies) != 0:
+                tower.attack_all(detected_enemies)
+
+    print(
+        "\n".join(
+            [
+                "Enemy {}, HP {} at {}".format(enemy.name, enemy.points, enemy.location)
+                for enemy in enemies
+            ]
+        )
+    )
+    print(f"=========={' Task2 Game Over ':^18}==========")
+
+
+def main():
+    task_1()
+    print()
+    task_2()
 
 
 if __name__ == "__main__":
