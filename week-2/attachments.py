@@ -4,6 +4,8 @@ from decimal import Decimal, getcontext, ROUND_HALF_UP
 
 import math
 
+from itertools import combinations
+
 context = getcontext()
 
 Number = TypeVar("Number", int, float, Decimal)
@@ -196,6 +198,8 @@ class Line:
         return self._line_coefficients
 
     def is_parallel_to(self, other: Self) -> bool:
+        if self.slope is None and other.slope is None:
+            return True
         return self.slope == other.slope
 
     def is_perpendicular_to(self, other: Self) -> bool:
@@ -266,6 +270,9 @@ class Line:
     def has_intersection(self, other: Self) -> bool:
         return self.intersection_point(other) is not None
 
+    def length(self) -> Decimal:
+        return self.point_1.distance_to(self.point_2)
+
     def __repr__(self):
         return f"Line({self.point_1}, {self.point_2})"
 
@@ -290,6 +297,9 @@ class Circle:
     """
 
     def __init__(self, center: Point, radius: Number):
+        if radius == 0:
+            raise ValueError("The radius of a circle cannot be zero.")
+
         self._center: Point = center
         self._radius: Decimal = Decimal(f"{radius}")
 
@@ -323,3 +333,95 @@ class Circle:
 
     def has_intersection(self, other: Self) -> bool:
         return self.center.distance_to(other.center) < (self.radius + other.radius)
+
+
+class Polygon:
+    def __init__(self, point_1: Point, point_2: Point, point_3: Point, point_4: Point):
+        if not self.__can_form_quadrilateral(point_1, point_2, point_3, point_4):
+            raise ValueError("The four points cannot form a quadrilateral.")
+
+        self._point_1: Point = point_1
+        self._point_2: Point = point_2
+        self._point_3: Point = point_3
+        self._point_4: Point = point_4
+
+    def __can_form_quadrilateral(
+        self, point_1: Point, point_2: Point, point_3: Point, point_4: Point
+    ) -> bool:
+        """Check if four points can form a quadrilateral."""
+
+        points = [point_1, point_2, point_3, point_4]
+        for point1, point2 in combinations(points, 2):
+            if point1 == point2:
+                return False
+
+        lines = [
+            Line(point_1, point_2),
+            Line(point_2, point_3),
+            Line(point_3, point_4),
+            Line(point_4, point_1),
+        ]
+
+        for line1, line2 in combinations(lines, 2):
+            if line1.is_parallel_to(line2) and line1.is_overlap(line2):
+                return False
+
+        return True
+
+    @property
+    def point_1(self) -> Point:
+        return self._point_1
+
+    @property
+    def point_2(self) -> Point:
+        return self._point_2
+
+    @property
+    def point_3(self) -> Point:
+        return self._point_3
+
+    @property
+    def point_4(self) -> Point:
+        return self._point_4
+
+    @property
+    def perimeter(self) -> Decimal:
+        return (
+            Line(self.point_1, self.point_2).length()
+            + Line(self.point_2, self.point_3).length()
+            + Line(self.point_3, self.point_4).length()
+            + Line(self.point_4, self.point_1).length()
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"Polygon({self.point_1}, {self.point_2}, {self.point_3}, {self.point_4})"
+        )
+
+
+def main():
+    # Task 1
+    line_a = Line(Point(-6, 1), Point(2, 4))
+    line_b = Line(Point(-6, -1), Point(2, 2))
+    line_c = Line(Point(-4, -4), Point(-1, 6))
+    print(f"Are Line A and Line B parallel? {line_a.is_parallel_to(line_b)}")
+    print(f"Are Line C and Line A perpendicular? {line_c.is_perpendicular_to(line_a)}")
+
+    circle_a = Circle(Point(6, 3), 2)
+    circle_b = Circle(Point(8, 1), 1)
+    print(f"Print the area of Circle A. {circle_a.area}")
+    print(f"Do Circle A and Circle B intersect? {circle_a.has_intersection(circle_b)}")
+
+    polygon_a = Polygon(
+        Point(-1, -2),
+        Point(2, 0),
+        Point(5, -1),
+        Point(4, -4),
+    )
+    print(f"Print the perimeter of Polygon A. {polygon_a.perimeter}")
+    
+    
+
+
+if __name__ == "__main__":
+    main()
