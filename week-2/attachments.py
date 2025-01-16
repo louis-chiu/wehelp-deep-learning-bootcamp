@@ -4,8 +4,6 @@ from decimal import Decimal, getcontext, ROUND_HALF_UP
 
 import math
 
-from functools import cached_property
-
 context = getcontext()
 
 Number = TypeVar("Number", int, float, Decimal)
@@ -159,7 +157,7 @@ class Line:
 
         self._point_2 = point
 
-    @cached_property
+    @property
     def slope(self) -> Decimal | None:
         """Calculate the slope of the line defined by two points.
 
@@ -179,7 +177,7 @@ class Line:
 
         return self._slope
 
-    @cached_property
+    @property
     def line_coefficients(self) -> tuple[Decimal, Decimal, Decimal]:
         """
         Calculate the coefficients of the line equation Ax + By = C
@@ -314,11 +312,12 @@ class Circle:
         self._area = None
         self._radius = Decimal(f"{radius}")
 
-    @cached_property
+    @property
     def area(self) -> Decimal:
         if self._area is None:
-            self._area = Decimal(f"{math.pi * self.radius**2}")
-            return self._area
+            self._area = (Decimal(f"{(math.pi)}") * self.radius**2).quantize(
+                Decimal(".000"), ROUND_HALF_UP
+            )
 
         return self._area
 
