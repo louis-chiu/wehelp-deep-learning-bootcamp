@@ -1,12 +1,90 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Self
 from random import random
+from enum import StrEnum
+import math
 
 
 class Layer(ABC):
     @abstractmethod
     def forward(self, inputs) -> None:
         raise NotImplementedError("Each layer must implement forward pass")
+
+
+class Activation(StrEnum):
+    RELU = "relu"
+    LINEAR = "linear"
+    SIGMOID = "sigmoid"
+    SOFTMAX = "softmax"
+
+
+class ActivationUtils:
+    @staticmethod
+    def linear(x: float) -> float:
+        return x
+
+    @staticmethod
+    def relu(x: float) -> float:
+        return x if x > 0 else 0
+
+    @staticmethod
+    def sigmoid(x: float) -> float:
+        return 1 / (1 + math.exp(-x))
+
+    @staticmethod
+    def softmax(input_: list[float]) -> list[float]:
+        max_val = max(input_)
+        exp_values = [math.exp(x - max_val) for x in input_]
+        sum_exp = sum(exp_values)
+        return [x / sum_exp for x in exp_values]
+
+    @staticmethod
+    def get_activation(
+        type: Activation,
+    ) -> Callable[[float], float] | Callable[[list[float]], list[float]]:
+        match type:
+            case Activation.RELU:
+                return ActivationUtils.relu
+            case Activation.SIGMOID:
+                return ActivationUtils.sigmoid
+            case Activation.LINEAR:
+                return ActivationUtils.linear
+            case Activation.SOFTMAX:
+                return ActivationUtils.softmax
+            case _:
+                raise ValueError(f"Invalid argument input: {type}")
+
+
+class LossFunctionUtils:
+    @staticmethod
+    def mean_square_error(output: list[float], expects: list[float]) -> float:
+        if len(output) != len(expects):
+            raise ValueError("Output and expected lists must have the same length.")
+
+        n = len(output)
+        return (1 / n) * sum(math.pow(e - o, 2) for o, e in zip(output, expects))
+
+    @staticmethod
+    def binary_cross_entropy(output: list[float], expects: list[int]) -> float:
+        if len(output) != len(expects):
+            raise ValueError("Output and expected lists must have the same length.")
+
+        return -sum(
+            [
+                (e * math.log(o) + (1 - e) * math.log(1 - o))
+                for o, e in zip(output, expects)
+            ]
+        )
+
+    @staticmethod
+    def categorical_cross_entropy(
+        output: list[float], expects: list[float]
+    ) -> list[float]:
+        if len(output) != len(expects):
+            raise ValueError("Output and expected lists must have the same length.")
+
+        return -sum([e * math.log(o) for o, e in zip(output, expects)])
 
 
 class FullyConnectedLayer(Layer):
@@ -17,11 +95,13 @@ class FullyConnectedLayer(Layer):
         units: int | None = None,
         weight: list[list[float]] | None = None,
         bias: list[float] | None = None,
+        activation: Activation = Activation.LINEAR,
     ):
         self._input_size = input_size
         self._units = units
         self._weight = weight
         self._bias = bias
+        self._activation = activation
 
         self._initialize_weight_and_bias()
 
@@ -46,8 +126,19 @@ class FullyConnectedLayer(Layer):
             raise ValueError(
                 f"Invalid argument input: expected {self.input_size} rows, but got {len(input_)}"
             )
+
+        if self._activation == Activation.SOFTMAX:
+            return ActivationUtils.softmax(
+                [
+                    sum([w * x for w, x in zip(weight_row, input_)]) + b
+                    for weight_row, b in zip(self.weight, self.bias)
+                ]
+            )
+        activation: Callable[[float], float] = ActivationUtils.get_activation(
+            self._activation
+        )
         return [
-            sum([w * x for w, x in zip(weight_row, input_)]) + b
+            activation(sum([w * x for w, x in zip(weight_row, input_)]) + b)
             for weight_row, b in zip(self.weight, self.bias)
         ]
 
@@ -118,10 +209,15 @@ class Network:
             units: int | None = None,
             weight: list[list[float]] | None = None,
             bias: list[float] | None = None,
+            activation: Activation = Activation.LINEAR,
         ) -> Self:
             self.layers.append(
                 FullyConnectedLayer(
-                    input_size=input_size, units=units, weight=weight, bias=bias
+                    input_size=input_size,
+                    units=units,
+                    weight=weight,
+                    bias=bias,
+                    activation=activation,
                 )
             )
 
@@ -135,8 +231,101 @@ class Network:
         return Network.Builder()
 
 
+def regression_task():
+    nn = (
+        Network.builder()
+        .add_fully_connected_layer(
+            weight=[[0.5, 0.2], [0.6, -0.6]], bias=[0.3, 0.25], activation="relu"
+        )
+        .add_fully_connected_layer(weight=[[0.8, -0.5], [0.4, 0.5]], bias=[0.6, -0.25])
+        .build()
+    )
+    print("=================== Model 1 ===================")
+
+    print(
+        f"Total Loss: {LossFunctionUtils.mean_square_error(nn.forward([1.5, 0.5]), [0.8, 1])}"
+    )
+
+    print(
+        f"Total Loss: {LossFunctionUtils.mean_square_error(nn.forward([0, 1]), [0.5, 0.5])}"
+    )
+
+
+def binary_classification_task():
+    nn = (
+        Network.builder()
+        .add_fully_connected_layer(
+            weight=[[0.5, 0.2], [0.6, -0.6]], bias=[0.3, 0.25], activation="relu"
+        )
+        .add_fully_connected_layer(
+            weight=[[0.8, 0.4]], bias=[-0.5], activation="sigmoid"
+        )
+        .build()
+    )
+    print("=================== Model 2 ===================")
+
+    print(
+        f"Total Loss: {LossFunctionUtils.binary_cross_entropy(nn.forward([0.75, 1.25]), [1])}"
+    )
+
+    print(
+        f"Total Loss: {LossFunctionUtils.binary_cross_entropy(nn.forward([-1, 0.5]), [0])}"
+    )
+
+
+def multiple_label_classification_task():
+    nn = (
+        Network.builder()
+        .add_fully_connected_layer(
+            weight=[[0.5, 0.2], [0.6, -0.6]], bias=[0.3, 0.25], activation="relu"
+        )
+        .add_fully_connected_layer(
+            weight=[[0.8, -0.4], [0.5, 0.4], [0.3, 0.75]],
+            bias=[0.6, 0.5, -0.5],
+            activation="sigmoid",
+        )
+        .build()
+    )
+    print("=================== Model 3 ===================")
+
+    print(
+        f"Total Loss: {LossFunctionUtils.binary_cross_entropy(nn.forward([1.5, 0.5]), [1, 0, 1])}"
+    )
+
+    print(
+        f"Total Loss: {LossFunctionUtils.binary_cross_entropy(nn.forward([0, 1]), [1, 1, 0])}"
+    )
+
+
+def multiple_class_classification_task():
+    nn = (
+        Network.builder()
+        .add_fully_connected_layer(
+            weight=[[0.5, 0.2], [0.6, -0.6]], bias=[0.3, 0.25], activation="relu"
+        )
+        .add_fully_connected_layer(
+            weight=[[0.8, -0.4], [0.5, 0.4], [0.3, 0.75]],
+            bias=[0.6, 0.5, -0.5],
+            activation="softmax",
+        )
+        .build()
+    )
+    print("=================== Model 4 ===================")
+
+    print(
+        f"Total Loss: {LossFunctionUtils.categorical_cross_entropy(nn.forward([1.5, 0.5]), [1, 0, 0])}"
+    )
+
+    print(
+        f"Total Loss: {LossFunctionUtils.categorical_cross_entropy(nn.forward([0, 1]), [0, 0, 1])}"
+    )
+
+
 def main():
-    pass
+    regression_task()
+    binary_classification_task()
+    multiple_label_classification_task()
+    multiple_class_classification_task()
 
 
 if __name__ == "__main__":
