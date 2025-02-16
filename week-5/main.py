@@ -56,26 +56,20 @@ def binary_classification_task():
     learning_rate = 0.01
 
     for epoch in range(1, 1001):
-        try:
-            output = nn.forward(input_)
-            nn.backward(loss_fn.get_output_losses(output, expects))
-            nn.zero_grad(learning_rate)
-            if epoch == 1:
-                print("=================== Task 2-1 ===================")
+        output = nn.forward(input_)
+        nn.backward(loss_fn.get_output_losses(output, expects))
+        nn.zero_grad(learning_rate)
+        if epoch == 1:
+            print("=================== Task 2-1 ===================")
 
-                for index, layer in enumerate(nn.layers):
-                    print(f"Layer {index}")
-                    print(layer.weight)
-                    print(layer.bias)
-            elif epoch == 1000:
-                print("=================== Task 2-2 ===================")
-                loss = loss_fn.get_total_loss(output, expects)
-                print(f"{loss=}")
-        except Exception as e:
-            print(f"=================== {type(e).__name__} ===================")
-            print(f"output: {output}")
-            print(f"ends at epoch: {epoch}")
-            break
+            for index, layer in enumerate(nn.layers):
+                print(f"Layer {index}")
+                print(layer.weight)
+                print(layer.bias)
+        elif epoch == 1000:
+            print("=================== Task 2-2 ===================")
+            loss = loss_fn.get_total_loss(output, expects)
+            print(f"{loss=}")
 
 
 def main():
