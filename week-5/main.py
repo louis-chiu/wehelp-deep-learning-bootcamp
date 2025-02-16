@@ -74,7 +74,7 @@ def binary_classification_task():
         except Exception as e:
             print(f"=================== {type(e).__name__} ===================")
             print(f"output: {output}")
-            print(f"ends ate ephoch: {epoch}")
+            print(f"ends at epoch: {epoch}")
             break
 
 
