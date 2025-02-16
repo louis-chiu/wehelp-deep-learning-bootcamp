@@ -2,7 +2,6 @@ from network import Network
 from loss_function import (
     BinaryCrossEntropy,
     MeanSqureError,
-    CategoricalCrossEntropy,
     LossFunction,
 )
 
