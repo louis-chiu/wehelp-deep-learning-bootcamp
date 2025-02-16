@@ -103,7 +103,7 @@ class FullyConnectedLayer(Layer):
         bias_gradients = delta
 
         prev_layer_gradient = [
-            sum(self.weight[j][i] * delta[j] for j in range(self.units))
+            sum(weight_row[i] * delta_val for weight_row, delta_val in zip(self.weight, delta))
             for i in range(self.input_size)
         ]
 

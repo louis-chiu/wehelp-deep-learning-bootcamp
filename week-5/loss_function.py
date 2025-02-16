@@ -14,7 +14,7 @@ class LossFunction(ABC):
         raise NotImplementedError
 
 
-class MeanSqureError(LossFunction):
+class MeanSquareError(LossFunction):
     def get_total_loss(self, output, expects):
         if len(output) != len(expects):
             raise ValueError("Output and expected lists must have the same length.")
@@ -34,10 +34,12 @@ class BinaryCrossEntropy(LossFunction):
     def get_total_loss(self, output, expects):
         if len(output) != len(expects):
             raise ValueError("Output and expected lists must have the same length.")
-        
+
+        # To avoid o equals to zero
+        epsilon = 1e-15
         return -sum(
             [
-                (e * math.log(o) + (1 - e) * math.log(1 - o))
+                (e * math.log(o + epsilon) + (1 - e) * math.log(1 - o + epsilon))
                 for o, e in zip(output, expects)
             ]
         )
@@ -46,7 +48,12 @@ class BinaryCrossEntropy(LossFunction):
         if len(output) != len(expects):
             raise ValueError("Output and expected lists must have the same length.")
 
-        return [-(e / o) + ((1 - e) / (1 - o)) for o, e in zip(output, expects)]
+        # To avoid o equals to zero
+        epsilon = 1e-15
+        return [
+            -(e / (o + epsilon)) + ((1 - e) / (1 - o + epsilon))
+            for o, e in zip(output, expects)
+        ]
 
 
 class CategoricalCrossEntropy(LossFunction):

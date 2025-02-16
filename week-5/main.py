@@ -1,7 +1,7 @@
 from network import Network
 from loss_function import (
     BinaryCrossEntropy,
-    MeanSqureError,
+    MeanSquareError,
     LossFunction,
 )
 
@@ -18,7 +18,7 @@ def regression_task():
     )
     input_ = [1.5, 0.5]
     expects = [0.8, 1]
-    loss_fn: LossFunction = MeanSqureError()
+    loss_fn: LossFunction = MeanSquareError()
     learning_rate = 0.01
 
     for epoch in range(1, 1001):
@@ -55,12 +55,12 @@ def binary_classification_task():
     loss_fn: LossFunction = BinaryCrossEntropy()
     learning_rate = 0.01
 
-    for epoch in range(1000):
+    for epoch in range(1, 1001):
         try:
             output = nn.forward(input_)
             nn.backward(loss_fn.get_output_losses(output, expects))
             nn.zero_grad(learning_rate)
-            if epoch == 0:
+            if epoch == 1:
                 print("=================== Task 2-1 ===================")
 
                 for index, layer in enumerate(nn.layers):
