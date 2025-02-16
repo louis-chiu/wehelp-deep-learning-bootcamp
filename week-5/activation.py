@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from abc import ABC, abstractmethod
 from enum import StrEnum
 import math
