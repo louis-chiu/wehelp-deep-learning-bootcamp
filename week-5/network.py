@@ -92,16 +92,24 @@ class FullyConnectedLayer(Layer):
 
         if self._activation == Activation.SOFTMAX:
             raise NotImplementedError
+
+        # activation_gradients: ∂y/∂z
         activation_gradients = [activation.derivative(o) for o in self._output]
 
+        # losses: ∂C/∂y
+        # delta: ∂C/∂z = ∂C/∂y * ∂y/∂z
         delta = [
             loss * gradient for loss, gradient in zip(losses, activation_gradients)
         ]
 
-        weight_gradients = [[d * input_ for input_ in self._input] for d in delta]
+        # self._input: ∂z/∂w
+        # weight_gradients: ∂C/∂w = ∂C/∂z * ∂z/∂w
+        weight_gradients = [[d * x for x in self._input] for d in delta]
 
+        # bias_gradients: ∂C/∂z
         bias_gradients = delta
 
+        # prev_layer_gradient: ∂C/∂x = ∂C/∂z * ∂z/∂a * ∂a/x
         prev_layer_gradient = [
             sum(w * delta_val for w, delta_val in zip(weight_col, delta))
             for weight_col in zip(*self.weight)
