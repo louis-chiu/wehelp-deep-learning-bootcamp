@@ -49,6 +49,7 @@ class BinaryCrossEntropy(LossFunction):
 
         # To avoid o equals to zero
         epsilon = 1e-15
+
         return -sum(
             [
                 (e * math.log(o + epsilon) + (1 - e) * math.log(1 - o + epsilon))

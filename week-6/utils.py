@@ -1,5 +1,6 @@
 from statistics import pstdev, mean
 
+
 class MathUtils:
     @staticmethod
     def mean(numbers: list[int | float]) -> int | float:

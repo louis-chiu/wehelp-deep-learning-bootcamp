@@ -77,9 +77,9 @@ def get_activation(
 
 
 def safe_exp(x: float):
-    if x > -745:
+    if -745 > x:
         return 0
-    elif 709 > x:
+    elif x > 709:
         return math.exp(709)
 
     return math.exp(x)

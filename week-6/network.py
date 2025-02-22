@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Self
-from random import random
+import random
+import math
 from activation import Activation, ActivationBase, get_activation
 
 
@@ -146,8 +147,10 @@ class FullyConnectedLayer(Layer):
                 raise ValueError(
                     "Invalid arguments: at least pass 'input_size' and 'units' to initialize FullyConnectedLayer object."
                 )
+            limit = math.sqrt(6 / (self.input_size + self.units))
             self._weight = [
-                [random() for _ in range(self.input_size)] for _ in range(self.units)
+                [random.uniform(-limit, limit) for _ in range(self.input_size)]
+                for _ in range(self.units)
             ]
 
         if self.bias is not None:
@@ -160,7 +163,7 @@ class FullyConnectedLayer(Layer):
                 raise ValueError(
                     "Invalid arguments: at least pass 'input_size' and 'units' to initialize FullyConnectedLayer object."
                 )
-            self._bias = [random() for _ in range(self.units)]
+            self._bias = [0 for _ in range(self.units)]
 
 
 class Network:
