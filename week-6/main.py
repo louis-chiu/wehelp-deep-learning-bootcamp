@@ -1,6 +1,5 @@
 import csv
 from os import path, getcwd
-from statistics import pstdev, mean
 from network import Network
 from loss_function import MeanSquareError
 from math import sqrt
@@ -33,13 +32,13 @@ class Task1:
         input_data: list[tuple[float, float]], expects_data: list[tuple[float]]
     ) -> tuple[list[tuple[float, float]], list[tuple[float]]]:
         weight_mean, height_mean = (
-            Task1.get_mean_of(expects_data),
-            Task1.get_mean_of(input_data, 1),
+            MathUtils.get_mean_of(expects_data),
+            MathUtils.get_mean_of(input_data, 1),
         )
 
         weight_stdev, height_stdev = (
-            Task1.get_pstdev_of(expects_data),
-            Task1.get_pstdev_of(input_data, 1),
+            MathUtils.get_pstdev_of(expects_data),
+            MathUtils.get_pstdev_of(input_data, 1),
         )
 
         return (
@@ -67,29 +66,13 @@ class Task1:
                 return -1
 
     @staticmethod
-    def get_mean_of(data: list[tuple[float, ...] | float], index: int = None) -> float:
-        if index is None:
-            return mean(data)
-
-        return mean([datum[index] for datum in data])
-
-    @staticmethod
-    def get_pstdev_of(
-        data: list[tuple[float, ...] | float], index: int = None
-    ) -> float:
-        if index is None:
-            return pstdev(data)
-
-        return pstdev([datum[index] for datum in data])
-
-    @staticmethod
     def run():
-        file_path = path.join(getcwd(), "week-6/dataset/gender-height-weight.csv")
+        file_path = path.join(getcwd(), "dataset/gender-height-weight.csv")
 
         input_data, expects_data = Task1.extract(file_path)
         weight_mean, weight_stdev = (
-            Task1.get_mean_of(expects_data),
-            Task1.get_pstdev_of(expects_data),
+            MathUtils.get_mean_of(expects_data),
+            MathUtils.get_pstdev_of(expects_data),
         )
         input_data, expects_data = Task1.transform(input_data, expects_data)
 
@@ -133,6 +116,42 @@ class Task1:
 
         avg_loss = loss_sum / len(input_data)
         print(f"After Training Avg Loss in Weight: {avg_loss: .2f} pounds")
+
+
+class Task2:
+    @staticmethod
+    def extract_data(
+        file_path: str,
+    ) -> tuple[list[int], list[tuple[float, float]], tuple[float, float], tuple[float]]:
+        try:
+            with open(file_path) as file:
+                lines = csv.reader(file)
+                next(lines)
+
+                data = [*lines]
+                weights = [float(weight) for _, _, weight in data]
+                heights = [float(height) for _, height, _ in data]
+                weight_mean, height_mean = mean(weights), mean(heights)
+                weight_stdev, height_stdev = pstdev(weights), pstdev(heights)
+
+                return (
+                    [
+                        (
+                            Task1.transform_gender(gender),
+                            MathUtils.zscore(float(height), height_mean, height_stdev),
+                        )
+                        for gender, height, _ in data
+                    ],
+                    [
+                        (MathUtils.zscore(float(weight), weight_mean, weight_stdev),)
+                        for weight in weights
+                    ],
+                    (height_mean, weight_mean),
+                    (height_stdev, weight_stdev),
+                )
+        except Exception as e:
+            print(f"An error occurred while processing the file {file_path}: {e}")
+            raise e
 
 
 def main():

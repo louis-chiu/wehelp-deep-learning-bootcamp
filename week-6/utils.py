@@ -1,3 +1,5 @@
+from statistics import pstdev, mean
+
 class MathUtils:
     @staticmethod
     def mean(numbers: list[int | float]) -> int | float:
@@ -38,3 +40,19 @@ class MathUtils:
             raise ValueError("Sigma must not be 0.")
 
         return [MathUtils.inverse_zscore(z_score, mu, sigma) for z_score in z_scores]
+
+    @staticmethod
+    def get_mean_of(data: list[tuple[float, ...] | float], index: int = None) -> float:
+        if index is None:
+            return mean(data)
+
+        return mean([datum[index] for datum in data])
+
+    @staticmethod
+    def get_pstdev_of(
+        data: list[tuple[float, ...] | float], index: int = None
+    ) -> float:
+        if index is None:
+            return pstdev(data)
+
+        return pstdev([datum[index] for datum in data])
