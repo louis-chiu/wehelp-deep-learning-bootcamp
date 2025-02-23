@@ -91,8 +91,20 @@ class Task1:
         epoches = 20
         learning_rate = 0.001
 
+        # Evaluate before training
         loss_sum = 0
-        for epoch in range(epoches):
+        for x, e in zip(input_data, expects_data):
+            output = nn.forward(x)
+            loss = mse.get_total_loss(
+                MathUtils.inverse_zscore_all(output, weight_mean, weight_stdev),
+                MathUtils.inverse_zscore_all(e, weight_mean, weight_stdev),
+            )
+
+            loss_sum += sqrt(loss)
+        avg_loss = loss_sum / len(input_data)
+        print(f"Before Training Avg Loss in Weight: {avg_loss: .2f} pounds")
+
+        for _ in range(epoches):
             for x, e in zip(input_data, expects_data):
                 output = nn.forward(x)
                 loss = mse.get_total_loss(
@@ -105,9 +117,6 @@ class Task1:
                 output_losses = mse.get_output_losses(output, e)
                 nn.backward(output_losses)
                 nn.zero_grad(learning_rate)
-            if epoch == 0:
-                avg_loss = loss_sum / len(input_data)
-                print(f"Before Training Avg Loss in Weight: {avg_loss: .2f} pounds")
 
         loss_sum = 0
         for x, e in zip(input_data, expects_data):
@@ -239,22 +248,25 @@ class Task2:
         learning_rate = 0.005
         epoches = 20
 
+        # Evaluate before training
         correct_times = 0
         is_survived = 0
-        for epoch in range(epoches):
+        for x, e in zip(input_data, expects_data):
+            output = nn.forward(x)
+            is_survived = 1 if output[0] > 0.5 else 0
+
+            if is_survived == e[0]:
+                correct_times += 1
+        accuracy = correct_times / len(input_data)
+        print(f"Before Training Prediction Accuracy: {accuracy * 100: .2f} %")
+
+        for _ in range(epoches):
             for x, e in zip(input_data, expects_data):
                 output = nn.forward(x)
-                is_survived = 1 if output[0] > 0.5 else 0
-
-                if is_survived == e[0]:
-                    correct_times += 1
 
                 output_losses = bce.get_output_losses(output, e)
                 nn.backward(output_losses)
                 nn.zero_grad(learning_rate)
-            if epoch == 0:
-                accuracy = correct_times / len(input_data)
-                print(f"Before Training Prediction Accuracy: {accuracy * 100: .2f} %")
 
         correct_times = 0
         for x, e in zip(input_data, expects_data):
