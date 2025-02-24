@@ -147,7 +147,13 @@ class FullyConnectedLayer(Layer):
                 raise ValueError(
                     "Invalid arguments: at least pass 'input_size' and 'units' to initialize FullyConnectedLayer object."
                 )
-            limit = math.sqrt(6 / (self.input_size + self.units))
+            if self._activation != Activation.RELU:
+                # Xavier
+                limit = math.sqrt(6 / (self.input_size + self.units))
+            else:
+                # He
+                limit = math.sqrt(6 / self.input_size)
+
             self._weight = [
                 [random.uniform(-limit, limit) for _ in range(self.input_size)]
                 for _ in range(self.units)
