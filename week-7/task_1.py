@@ -5,7 +5,7 @@ import torch
 from torch import nn
 import torch.optim as optim
 
-DEFAULT_FILE_PATH = "week-7/dataset/gender-height-weight.csv"
+DEFAULT_FILE_PATH = "dataset/gender-height-weight.csv"
 
 
 class GenderHeightWeightDataset(Dataset):

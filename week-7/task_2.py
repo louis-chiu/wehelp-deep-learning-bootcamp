@@ -5,7 +5,7 @@ import torch
 from torch import nn
 import torch.optim as optim
 
-DEFAULT_FILE_PATH = "week-7/dataset/titanic.csv"
+DEFAULT_FILE_PATH = "dataset/titanic.csv"
 
 
 class TitanicDataset(Dataset):
