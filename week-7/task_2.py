@@ -32,7 +32,7 @@ class TitanicDataset(Dataset):
         FAMILY_NUMS = "family_nums"
 
         self.raw_data[FAMILY_NUMS] = self.raw_data[SIB_SP].fillna(0) + self.raw_data[
-            FARE
+            PARCH
         ].fillna(0)
 
         self.age_mean = self.raw_data[AGE].mean()
