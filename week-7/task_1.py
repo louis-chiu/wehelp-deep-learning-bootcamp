@@ -77,7 +77,9 @@ class Task1:
 
         base_lr = 0.001  # lr when batch_size = 1
         batch_size = 1
-        learning_rate = base_lr * (batch_size**0.5)  # based on SGD
+        learning_rate = base_lr * (
+            batch_size**0.5
+        )  # based on SGD, ref: https://kexue.fm/archives/10542
 
         train_loader = DataLoader(train_dataset, batch_size, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size)
@@ -121,14 +123,15 @@ class Task1:
                 total_loss_in_weights += loss.item() ** 0.5 * dataset.weight_std
 
             avg_loss_in_weights = total_loss_in_weights / len(train_loader)
-        total_loss_in_weights = 0.0
 
         # Evaluate after training
         model.eval()
+        total_loss_in_weights = 0.0
         with torch.no_grad():
             for _, (features, labels) in enumerate(test_loader):
                 features = features.to(device)
                 labels = labels.to(device)
+
                 output = model(features)
                 loss = loss_fn(output, labels)
                 total_loss_in_weights += loss.item() ** 0.5 * dataset.weight_std
