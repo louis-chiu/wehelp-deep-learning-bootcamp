@@ -5,8 +5,6 @@ from pathlib import Path
 import random
 from scrapy.utils.log import configure_logging
 import logging
-import csv
-from collections import deque
 
 OUTPUT_DIR = Path("./data")
 LOG_DIR = Path("./logs")
