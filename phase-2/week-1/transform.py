@@ -26,12 +26,15 @@ def transform(board_name):
     if not OUTPUT_DIR.exists():
         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    df.to_csv(OUTPUT_DIR / f"{board_name}.csv", index=False)
-
+    return df
 
 def main():
+    combined_df = pd.DataFrame()
     for board_name in BOARD_NAMES:
-        transform(board_name)
+        df = transform(board_name)
+        combined_df = pd.concat([combined_df, df], ignore_index=True)
+    print(f"Total data size: {combined_df.shape[0]}")
+    combined_df.to_csv(OUTPUT_DIR / "combined.csv", index=False)
 
 
 if __name__ == "__main__":
