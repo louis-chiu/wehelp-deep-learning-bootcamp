@@ -179,3 +179,7 @@ cython_debug/
 
 # Test File
 *test*.py
+
+# UV
+uv.lock
+pyproject.toml
