@@ -28,12 +28,14 @@ def transform(board_name):
 
     return df
 
+
 def main():
     combined_df = pd.DataFrame()
     for board_name in BOARD_NAMES:
         df = transform(board_name)
         combined_df = pd.concat([combined_df, df], ignore_index=True)
     print(f"Total data size: {combined_df.shape[0]}")
+    combined_df = combined_df.dropna(subset="title")
     combined_df.to_csv(OUTPUT_DIR / "combined.csv", index=False)
 
 
