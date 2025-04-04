@@ -2,24 +2,20 @@ from gensim.models.doc2vec import Doc2Vec
 import multiprocessing
 from collections import Counter
 import logging
-from corpus_utils import read_as_tagged_documents
+from corpus_utils import spllit_data, to_tagged_documents
 from datetime import datetime
 
 EXECUTE_AT = datetime.now().strftime("%m%d-%H%M")
-BASE_PATH = ""  # "./0327-1503/"
-PATH = f"{BASE_PATH}example-data.csv"
+BASE_PATH = "./0327-1503/"
+PATH = f"{BASE_PATH}tokenized-title"
 DEFAULT_MODEL_CONFIG = {
-    "vector_size": 8,
+    "vector_size": 64,
     "min_count": 2,
     "epochs": 100,
     "workers": multiprocessing.cpu_count(),
 }
+RANDOM_STATE = 42
 
-logging.basicConfig(
-    format="%(asctime)s : %(levelname)s : %(message)s",
-    level=logging.INFO,
-    filename=f"{BASE_PATH}embedding-{EXECUTE_AT}.log",
-)
 
 
 def evaluate(model, tagged_documents) -> tuple[float, float]:
@@ -45,7 +41,7 @@ def evaluate(model, tagged_documents) -> tuple[float, float]:
     return int(top1_acc), int(top2_acc)
 
 
-def setup_model_configuration(config=DEFAULT_MODEL_CONFIG, path=None) -> Doc2Vec:
+def setup_model_configuration(config=DEFAULT_MODEL_CONFIG, path=None):
     if not path:
         logging.info(f"Model Configuration - {config}")
         model = Doc2Vec(**config)
@@ -59,19 +55,29 @@ def main():
     model = setup_model_configuration()
 
     logging.info(f"Reading corpus from {PATH}")
-    tagged_documents = list(read_as_tagged_documents(PATH))
+    train_dataset, test_dataset = spllit_data(PATH)
+    train_tagged_documents, test_tagged_documents = (
+        list(to_tagged_documents(train_dataset)),
+        list(to_tagged_documents(test_dataset)),
+    )
 
-    model.build_vocab(tagged_documents)
+    model.build_vocab(train_tagged_documents)
     model.train(
-        tagged_documents,
+        train_tagged_documents,
         total_examples=model.corpus_count,
         epochs=model.epochs,
     )
 
-    top1_acc, top2_acc = evaluate(model, tagged_documents)
+    top1_acc, top2_acc = evaluate(model, test_tagged_documents)
 
     model.save(f"{BASE_PATH}{EXECUTE_AT}-{top1_acc}-{top2_acc}.model")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        format="%(asctime)s : %(levelname)s : %(message)s",
+        level=logging.INFO,
+        filename=f"{BASE_PATH}embedding-{EXECUTE_AT}.log",
+    )
+    
     main()

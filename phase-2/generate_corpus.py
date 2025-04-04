@@ -1,4 +1,4 @@
-from corpus_utils import read_as_tagged_documents
+from corpus_utils import read_titles
 import argparse
 
 
@@ -27,7 +27,7 @@ def main():
 
     # 將 TaggedDocument 寫入 corpus 文件
     with open(output_path, "w", encoding="utf-8") as f:
-        for doc in read_as_tagged_documents(path):
+        for doc in read_titles(path):
             line = " ".join(doc.words) + "\n"
             f.write(line)
 
