@@ -1,12 +1,13 @@
-from gensim.models.doc2vec import TaggedDocument
-from sklearn.model_selection import train_test_split
 import csv
-import os
-import torch
-from typing import Generator, Union, Iterable, cast
 import logging
-from gensim.models.doc2vec import Doc2Vec
+import os
 from functools import singledispatchmethod
+from typing import Generator, Union, Iterable, cast
+
+import torch
+from gensim.models.doc2vec import TaggedDocument
+from gensim.models.doc2vec import Doc2Vec
+from sklearn.model_selection import train_test_split
 
 
 class CorpusUtils:
