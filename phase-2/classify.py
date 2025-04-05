@@ -41,6 +41,7 @@ class Task:
         embedding_model = ModelUtils.setup_model_configuration(EMBEDDING_MODEL_PATH)
         vectorized = False  # indicates if corpus has been vectorized already
 
+        logging.info("Loadding Dataset...")
         train_dataset, test_dataset = [
             cast(list[tuple[str, torch.Tensor]], dataset)
             if vectorized
