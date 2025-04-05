@@ -3,15 +3,16 @@ from torch import nn
 from torch import optim
 from tqdm import tqdm
 
-from corpus_utils import spllit_data
-from embedding import setup_model_configuration
+from utils import CorpusUtils, ModelUtils
 from datetime import datetime
 import logging
+from typing import cast
 
-BASE_PATH = "./" # "./0327-1503/"
+BASE_PATH = "./"  # "./0327-1503/"
 PATH = f"{BASE_PATH}example-data.csv"
 EMBEDDING_MODEL_PATH = f"{BASE_PATH}0402-0002-75-86.model"
 EXECUTE_AT = datetime.now().strftime("%m%d-%H%M")
+
 
 class ClassificationNetwork(nn.Module):
     def __init__(self):
@@ -37,9 +38,21 @@ class Task:
         base_lr = 0.005
         batch_size = 8
         learning_rate = base_lr * (batch_size**0.5)
-        embedding_model = setup_model_configuration(path=EMBEDDING_MODEL_PATH)
+        embedding_model = ModelUtils.setup_model_configuration(EMBEDDING_MODEL_PATH)
+        vectorized = False
 
-        train_dataset, test_dataset = spllit_data(PATH)
+        train_dataset, test_dataset = [
+            cast(list[tuple[str, torch.Tensor]], dataset)
+            if vectorized
+            else CorpusUtils.vectorize_corpus(
+                cast(list[list[str]], dataset), embedding_model
+            )
+            for dataset in CorpusUtils.spllit_data_from_file(
+                PATH, vectorized=vectorized
+            )
+        ]
+
+        """
         train_dataset = [
             (label, torch.from_numpy(embedding_model.infer_vector(feature)))
             for label, *feature in train_dataset
@@ -48,21 +61,22 @@ class Task:
             (label, torch.from_numpy(embedding_model.infer_vector(feature)))
             for label, *feature in test_dataset
         ]
+        """
 
         model = ClassificationNetwork().to(device)
         loss_fn = nn.BCELoss()
         optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
-        TAG_MAPPING = {
+        TAG_MAPPING: dict[str, int] = {
             tag: index for index, tag in enumerate(embedding_model.dv.index_to_key)
-        }
+        }  # type: ignore
 
         # Evaluate before training
         model.eval()
         correct_times = 0
         logging.info("Model Evaluating Before Training ...")
         with torch.no_grad():
-            for ephc, (label, feature) in enumerate(test_dataset):
+            for _, (label, feature) in enumerate(test_dataset):
                 feature = feature.to(device)
                 target = torch.as_tensor(
                     Task.one_hot_encoding(label, TAG_MAPPING.keys()),
@@ -101,7 +115,7 @@ class Task:
                 loop.set_description(
                     f"Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():^10.5}"
                 )
-                
+
                 if i == len(train_dataset) - 1:
                     logging.info(
                         f"Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():^10.5}"
@@ -127,7 +141,8 @@ class Task:
         logging.info(f"Accuracy after traning: {accuracy}")
 
         torch.save(
-            model.state_dict(), f"{BASE_PATH}{EXECUTE_AT}-{int(accuracy * 100)}.classify.model"
+            model.state_dict(),
+            f"{BASE_PATH}{EXECUTE_AT}-{int(accuracy * 100)}.classify.model",
         )
 
     @staticmethod

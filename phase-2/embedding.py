@@ -1,9 +1,10 @@
-from gensim.models.doc2vec import Doc2Vec
+import logging
 import multiprocessing
 from collections import Counter
-import logging
-from corpus_utils import spllit_data, to_tagged_documents
 from datetime import datetime
+from typing import Iterable, cast
+
+from utils import CorpusUtils, ModelUtils
 
 EXECUTE_AT = datetime.now().strftime("%m%d-%H%M")
 BASE_PATH = "./0327-1503/"
@@ -15,7 +16,6 @@ DEFAULT_MODEL_CONFIG = {
     "workers": multiprocessing.cpu_count(),
 }
 RANDOM_STATE = 42
-
 
 
 def evaluate(model, tagged_documents) -> tuple[float, float]:
@@ -41,24 +41,14 @@ def evaluate(model, tagged_documents) -> tuple[float, float]:
     return int(top1_acc), int(top2_acc)
 
 
-def setup_model_configuration(config=DEFAULT_MODEL_CONFIG, path=None):
-    if not path:
-        logging.info(f"Model Configuration - {config}")
-        model = Doc2Vec(**config)
-    else:
-        logging.info(f"Model Configuration - read model from {path}")
-        model = Doc2Vec.load(path)
-    return model
-
-
 def main():
-    model = setup_model_configuration()
+    model = ModelUtils.setup_model_configuration(DEFAULT_MODEL_CONFIG)
 
     logging.info(f"Reading corpus from {PATH}")
-    train_dataset, test_dataset = spllit_data(PATH)
+    train_dataset, test_dataset = CorpusUtils.spllit_data_from_file(PATH)
     train_tagged_documents, test_tagged_documents = (
-        list(to_tagged_documents(train_dataset)),
-        list(to_tagged_documents(test_dataset)),
+        list(CorpusUtils.to_tagged_documents(cast(Iterable[list[str]], train_dataset))),
+        list(CorpusUtils.to_tagged_documents(cast(Iterable[list[str]], test_dataset))),
     )
 
     model.build_vocab(train_tagged_documents)
@@ -79,5 +69,5 @@ if __name__ == "__main__":
         level=logging.INFO,
         filename=f"{BASE_PATH}embedding-{EXECUTE_AT}.log",
     )
-    
+
     main()
