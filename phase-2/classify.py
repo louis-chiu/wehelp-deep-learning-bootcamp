@@ -39,7 +39,7 @@ class Task:
         batch_size = 8
         learning_rate = base_lr * (batch_size**0.5)
         embedding_model = ModelUtils.setup_model_configuration(EMBEDDING_MODEL_PATH)
-        vectorized = False
+        vectorized = False  # indicates if corpus has been vectorized already
 
         train_dataset, test_dataset = [
             cast(list[tuple[str, torch.Tensor]], dataset)
@@ -51,17 +51,6 @@ class Task:
                 PATH, vectorized=vectorized
             )
         ]
-
-        """
-        train_dataset = [
-            (label, torch.from_numpy(embedding_model.infer_vector(feature)))
-            for label, *feature in train_dataset
-        ]
-        test_dataset = [
-            (label, torch.from_numpy(embedding_model.infer_vector(feature)))
-            for label, *feature in test_dataset
-        ]
-        """
 
         model = ClassificationNetwork().to(device)
         loss_fn = nn.BCELoss()
