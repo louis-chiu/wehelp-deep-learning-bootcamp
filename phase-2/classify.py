@@ -1,17 +1,39 @@
 import torch
-from torch import nn
-from torch import optim
+from torch import nn, optim
+from torch.utils.data import Dataset, DataLoader, random_split
 from tqdm import tqdm
 
+import logging
 from utils import CorpusUtils, ModelUtils
 from datetime import datetime
-import logging
 from typing import cast
 
-BASE_PATH = "./"  # "./0327-1503/"
-PATH = f"{BASE_PATH}example-data.csv"
+
+BASE_PATH = ""
+PATH = f"{BASE_PATH}example-data.csv.pt"
+# BASE_PATH = "./0327-1503/"
+# PATH = f"{BASE_PATH}tokenized-title.pt"
+VECTORIZED = True  # indicates if corpus has been vectorized already
 EMBEDDING_MODEL_PATH = f"{BASE_PATH}0402-0002-75-86.model"
 EXECUTE_AT = datetime.now().strftime("%m%d-%H%M")
+
+
+class PTTDataset(Dataset):
+    def __init__(self, embedding_model) -> None:
+        super().__init__()
+        self.embedding_model = embedding_model
+        self.data = [
+            cast(tuple[str, torch.Tensor], line)
+            if VECTORIZED
+            else CorpusUtils.vectorize(cast(list[str], line), embedding_model)
+            for line in CorpusUtils.read_data(PATH, vectorized=VECTORIZED)
+        ]
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __getitem__(self, index) -> tuple[str, torch.Tensor]:
+        return self.data[index]
 
 
 class ClassificationNetwork(nn.Module):
@@ -22,7 +44,6 @@ class ClassificationNetwork(nn.Module):
             nn.Linear(64, 32),
             nn.ReLU(),
             nn.Linear(32, 9),
-            nn.Sigmoid(),
         )
 
     def forward(self, x):
@@ -35,26 +56,41 @@ class Task:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         logging.info(f"Training Using {device}")
-        base_lr = 0.005
-        batch_size = 8
+        base_lr = 0.015
+        batch_size = 1
         learning_rate = base_lr * (batch_size**0.5)
+        epochs = 100
         embedding_model = ModelUtils.setup_model_configuration(EMBEDDING_MODEL_PATH)
-        vectorized = False  # indicates if corpus has been vectorized already
+        logging.info(f"Model Configuration {batch_size=}, {learning_rate=}, {epochs=}")
 
         logging.info("Loadding Dataset...")
-        train_dataset, test_dataset = [
-            cast(list[tuple[str, torch.Tensor]], dataset)
-            if vectorized
-            else CorpusUtils.vectorize_corpus(
-                cast(list[list[str]], dataset), embedding_model
-            )
-            for dataset in CorpusUtils.spllit_data_from_file(
-                PATH, vectorized=vectorized
-            )
-        ]
+
+        dataset = PTTDataset(embedding_model)
+        train_size = int(0.8 * len(dataset))
+        test_size = len(dataset) - train_size
+        train_dataset, test_dataset = random_split(
+            dataset,
+            [train_size, test_size],
+            generator=torch.Generator().manual_seed(42),
+        )
+
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size,
+            shuffle=True,
+            num_workers=8,
+            pin_memory=True,
+        )
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size,
+            shuffle=False,
+            num_workers=8,
+            pin_memory=True,
+        )
 
         model = ClassificationNetwork().to(device)
-        loss_fn = nn.BCELoss()
+        loss_fn = nn.CrossEntropyLoss()
         optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
         TAG_MAPPING: dict[str, int] = {
@@ -64,70 +100,73 @@ class Task:
         # Evaluate before training
         model.eval()
         correct_times = 0
+        total_samples = 0
         logging.info("Model Evaluating Before Training ...")
         with torch.no_grad():
-            for _, (label, feature) in enumerate(test_dataset):
-                feature = feature.to(device)
-                target = torch.as_tensor(
-                    Task.one_hot_encoding(label, TAG_MAPPING.keys()),
-                    dtype=torch.float,
-                ).to(device)
+            for _, (labels, features) in enumerate(test_loader):
+                features = features.to(device)
+                targets = Task.one_hot_encoding(labels, TAG_MAPPING, device)
 
-                output = model(feature)
-                loss = loss_fn(output, target)
-                if Task.is_prediction_correct(output, TAG_MAPPING.get(label)):
-                    correct_times += 1
+                outputs = model(features)
+                loss = loss_fn(outputs, targets)
 
-        accuracy = correct_times / len(test_dataset)
+                for i, label in enumerate(labels):
+                    if Task.is_prediction_correct(
+                        outputs[i].unsqueeze(0), TAG_MAPPING.get(label)
+                    ):
+                        correct_times += 1
+                total_samples += len(labels)
+
+        accuracy = correct_times / total_samples
         logging.info(f"Accuracy before traning: {accuracy}")
 
         # Training
         model.train()
-        epochs = 100
         logging.info("Model Training ...")
         for epoch in range(epochs):
-            loop = tqdm(enumerate(train_dataset), total=len(train_dataset))
+            loop = tqdm(enumerate(train_loader), total=len(train_loader))
 
-            for i, (label, feature) in loop:
-                feature = feature.to(device)
-                target = torch.as_tensor(
-                    Task.one_hot_encoding(label, TAG_MAPPING.keys()),
-                    dtype=torch.float,
-                ).to(device)
+            for i, (labels, features) in loop:
+                features = features.to(device)
+                targets = Task.one_hot_encoding(labels, TAG_MAPPING, device)
 
                 optimizer.zero_grad()
 
-                prediction = model(feature)
-                loss = loss_fn(prediction, target)
+                prediction = model(features)
+                loss = loss_fn(prediction, targets)
                 loss.backward()
                 optimizer.step()
 
                 loop.set_description(
-                    f"Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():^10.5}"
+                    f"Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():<10.5}"
                 )
 
-                if i == len(train_dataset) - 1:
+                if i == len(train_loader) - 1:
                     logging.info(
-                        f"Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():^10.5}"
+                        f"Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():<10.5}"
                     )
 
         # Evaluate after training
         model.eval()
         correct_times = 0
+        total_samples = 0
         logging.info("Model Evaluating After Training ...")
         with torch.no_grad():
-            for _, (label, feature) in enumerate(test_dataset):
-                feature = feature.to(device)
-                target = torch.as_tensor(
-                    Task.one_hot_encoding(label, TAG_MAPPING.keys()),
-                    dtype=torch.float,
-                ).to(device)
+            for _, (labels, features) in enumerate(test_loader):
+                features = features.to(device)
+                targets = Task.one_hot_encoding(labels, TAG_MAPPING, device)
 
-                output = model(feature)
-                loss = loss_fn(output, target)
-                if Task.is_prediction_correct(output, TAG_MAPPING.get(label)):
-                    correct_times += 1
-        accuracy = correct_times / len(test_dataset)
+                outputs = model(features)
+                loss = loss_fn(outputs, targets)
+
+                for i, label in enumerate(labels):
+                    if Task.is_prediction_correct(
+                        outputs[i].unsqueeze(0), TAG_MAPPING.get(label)
+                    ):
+                        correct_times += 1
+                total_samples += len(labels)
+
+        accuracy = correct_times / total_samples
         logging.info(f"Accuracy after traning: {accuracy}")
 
         torch.save(
@@ -140,8 +179,14 @@ class Task:
         return output.argmax().item() == target_index
 
     @staticmethod
-    def one_hot_encoding(target, labels):
-        return [0 if target != label else 1 for label in labels]
+    def one_hot_encoding(labels, tag_mapping, device):
+        targets = torch.zeros(len(labels), len(tag_mapping), device=device)
+        batch_indices = torch.arange(len(labels), device=device)
+        tag_indices = torch.tensor(
+            [tag_mapping.get(label) for label in labels], device=device
+        )
+        targets[batch_indices, tag_indices] = 1
+        return targets
 
 
 if __name__ == "__main__":

@@ -52,13 +52,9 @@ class CorpusUtils:
     @staticmethod
     def _read_vectorized_data(
         path="./example-data.csv.pt",
-    ) -> Union[
-        Generator[list[str], None, None],
-        Generator[TaggedDocument, None, None],
-    ]:
-        vectorized_data = torch.load(path)
-        for datum in vectorized_data:
-            yield datum
+    ) -> Generator[tuple[str, torch.Tensor], None, None]:
+        for label, *feature in torch.load(path):
+            yield label, *feature
 
     @staticmethod
     def to_tagged_documents(
@@ -147,6 +143,10 @@ class CorpusUtils:
             )
             for tagged_document in data
         ]
+
+    @staticmethod
+    def vectorize(data: list[str], embedding_model: Doc2Vec) -> torch.Tensor:
+        return torch.from_numpy(embedding_model.infer_vector(data))
 
 
 class ModelUtils:
