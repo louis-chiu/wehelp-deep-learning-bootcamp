@@ -14,10 +14,11 @@ BASE_PATH = ""
 PATH = f"{BASE_PATH}example-data.csv.pt"
 # BASE_PATH = "./0327-1503/"
 # PATH = f"{BASE_PATH}tokenized-title.pt"
+# PATH = f"{BASE_PATH}tokenized-title-only-NAVFW.pt"
 VECTORIZED = True  # indicates if corpus has been vectorized already
 EMBEDDING_MODEL_PATH = f"{BASE_PATH}0402-0002-75-86.model"
 EXECUTE_AT = datetime.now().strftime("%m%d-%H%M")
-LEARNING_CURVE_PATH = f"{BASE_PATH}{EXECUTE_AT}-learning_curve.png"
+LEARNING_CURVE_PATH = f"{BASE_PATH}{EXECUTE_AT}-learning-curve.png"
 
 
 class PTTDataset(Dataset):
@@ -66,9 +67,9 @@ class Task:
 
         logging.info(f"Training Using {device}")
         base_lr = 0.015
-        batch_size = 8  # 128
+        batch_size = 1
         learning_rate = base_lr * (batch_size**0.5)
-        epochs = 10  # 500
+        epochs = 15
         embedding_model = ModelUtils.setup_model_configuration(EMBEDDING_MODEL_PATH)
         logging.info(
             f"Model Configuration {batch_size=}, {learning_rate=}, {epochs=}, {PATH=}"
@@ -123,6 +124,8 @@ class Task:
             tag: index for index, tag in enumerate(embedding_model.dv.index_to_key)
         }  # type: ignore
 
+        validation_epochs = Task.get_validation_epochs(epochs)
+
         train_losses = []
         train_first_accuracies = []
         train_second_accuracies = []
@@ -152,72 +155,65 @@ class Task:
                 loss.backward()
                 optimizer.step()
 
-                for j, label in enumerate(labels):
-                    flatted_prediction = prediction[j].unsqueeze(0)
-                    target_label_index = TAG_MAPPING.get(label)
-                    if Task.is_prediction_correct(
-                        flatted_prediction, target_label_index
-                    ):
-                        train_first_match += 1
-                    if Task.is_prediction_correct(
-                        flatted_prediction, target_label_index, 2
-                    ):
-                        train_second_match += 1
-                train_total_samples += len(labels)
-                train_total_loss += loss.item() * len(labels)
+                first_match, second_match = Task.calculate_top_k_accuracy(
+                    prediction, labels, TAG_MAPPING, device
+                )
+
                 loop.set_description(
                     f"Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():>10.5}"
                 )
 
-            train_total_loss /= train_total_samples
-            train_first_acc = train_first_match / train_total_samples
-            train_second_acc = train_second_match / train_total_samples
+                if epoch in validation_epochs:
+                    train_first_match += first_match
+                    train_second_match += second_match
+                    train_total_samples += len(labels)
+                    train_total_loss += loss.item() * len(labels)
             logging.info(
                 f"Train - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {train_total_loss:>10.5}"
             )
-            train_losses.append(train_total_loss)
-            train_first_accuracies.append(train_first_acc)
-            train_second_accuracies.append(train_second_acc)
+
+            if epoch in validation_epochs:
+                train_total_loss /= train_total_samples
+                train_first_acc = train_first_match / train_total_samples
+                train_second_acc = train_second_match / train_total_samples
+
+                train_losses.append(train_total_loss)
+                train_first_accuracies.append(train_first_acc)
+                train_second_accuracies.append(train_second_acc)
 
             # Validation
-            val_first_match = 0
-            val_second_match = 0
-            val_total_loss = 0
-            val_total_samples = 0
+            if epoch in validation_epochs:
+                val_first_match = 0
+                val_second_match = 0
+                val_total_loss = 0
+                val_total_samples = 0
 
-            model.eval()
-            with torch.no_grad():
-                for labels, features in val_loader:
-                    features = features.to(device)
-                    targets = Task.one_hot_encoding(labels, TAG_MAPPING, device)
+                model.eval()
+                with torch.no_grad():
+                    for labels, features in val_loader:
+                        features = features.to(device)
+                        targets = Task.one_hot_encoding(labels, TAG_MAPPING, device)
 
-                    prediction = model(features)
-                    loss = loss_fn(prediction, targets)
+                        prediction = model(features)
+                        loss = loss_fn(prediction, targets)
 
-                    for i, label in enumerate(labels):
-                        flatted_prediction = prediction[i].unsqueeze(0)
-                        target_label_index = TAG_MAPPING.get(label)
-                        if Task.is_prediction_correct(
-                            flatted_prediction, target_label_index
-                        ):
-                            val_first_match += 1
-                        if Task.is_prediction_correct(
-                            flatted_prediction, target_label_index, 2
-                        ):
-                            val_second_match += 1
-                    val_total_samples += len(labels)
-                    val_total_loss += loss.item() * len(labels)
+                        first_match, second_match = Task.calculate_top_k_accuracy(
+                            prediction, labels, TAG_MAPPING, device
+                        )
+                        val_first_match += first_match
+                        val_second_match += second_match
+                        val_total_samples += len(labels)
+                        val_total_loss += loss.item() * len(labels)
 
-                val_total_loss /= val_total_samples
-                val_first_acc = val_first_match / val_total_samples
-                val_second_acc = val_second_match / val_total_samples
-                logging.info(
-                    f"Validation - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {val_total_loss:>10.5}"
-                )
-
-                val_losses.append(val_total_loss)
-                val_first_accuracies.append(val_first_acc)
-                val_second_accuracies.append(val_second_acc)
+                    val_total_loss /= val_total_samples
+                    val_first_acc = val_first_match / val_total_samples
+                    val_second_acc = val_second_match / val_total_samples
+                    logging.info(
+                        f"Validation - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {val_total_loss:>10.5}"
+                    )
+                    val_losses.append(val_total_loss)
+                    val_first_accuracies.append(val_first_acc)
+                    val_second_accuracies.append(val_second_acc)
         Task.plot_learning_curves(
             train_losses,
             val_losses,
@@ -234,24 +230,18 @@ class Task:
         test_total_samples = 0
         logging.info("Model Evaluating After Training ...")
         with torch.no_grad():
-            for _, (labels, features) in enumerate(test_loader):
+            for labels, features in test_loader:
                 features = features.to(device)
                 targets = Task.one_hot_encoding(labels, TAG_MAPPING, device)
 
                 prediction = model(features)
                 loss = loss_fn(prediction, targets)
+                first_match, second_match = Task.calculate_top_k_accuracy(
+                    prediction, labels, TAG_MAPPING, device
+                )
 
-                for i, label in enumerate(labels):
-                    flatted_prediction = prediction[i].unsqueeze(0)
-                    target_label_index = TAG_MAPPING.get(label)
-                    if Task.is_prediction_correct(
-                        flatted_prediction, target_label_index
-                    ):
-                        test_first_match += 1
-                    if Task.is_prediction_correct(
-                        flatted_prediction, target_label_index, 2
-                    ):
-                        test_second_match += 1
+                test_first_match += first_match
+                test_second_match += second_match
                 test_total_samples += len(labels)
 
         test_first_accuracy = test_first_match / test_total_samples
@@ -270,6 +260,23 @@ class Task:
         return bool((output.topk(nth_matched).indices == target_index).any().item())
 
     @staticmethod
+    def calculate_top_k_accuracy(
+        prediction: torch.Tensor,
+        labels: list[str],
+        tag_mapping: dict[str, int],
+        device: torch.device,
+    ) -> tuple:
+        top1_preds = prediction.topk(1).indices
+        top2_preds = prediction.topk(2).indices
+        target_indices = torch.tensor(
+            [tag_mapping.get(label) for label in labels], device=device
+        ).view(-1, 1)
+
+        first_match = (top1_preds == target_indices).sum().item()
+        second_match = (top2_preds == target_indices).any(dim=1).sum().item()
+        return first_match, second_match
+
+    @staticmethod
     def one_hot_encoding(labels, tag_mapping, device):
         targets = torch.zeros(len(labels), len(tag_mapping), device=device)
         batch_indices = torch.arange(len(labels), device=device)
@@ -278,6 +285,20 @@ class Task:
         )
         targets[batch_indices, tag_indices] = 1
         return targets
+
+    @staticmethod
+    def get_validation_epochs(epochs: int) -> list[int]:
+        if epochs <= 100:
+            validation_epochs = list(range(epochs))
+        else:
+            step = (
+                epochs // 99
+            )  # 99 points + the final epoch = 100 total validation points
+            validation_epochs = list(range(0, epochs, step))
+
+        if epochs - 1 not in validation_epochs:
+            validation_epochs.append(epochs - 1)
+        return validation_epochs
 
     @staticmethod
     def plot_learning_curves(
