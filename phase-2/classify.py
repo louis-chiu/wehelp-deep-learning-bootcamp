@@ -138,6 +138,7 @@ class Task:
             train_first_match = 0
             train_second_match = 0
             train_total_loss = 0
+            train_total_samples = 0
 
             model.train()
             for i, (labels, features) in loop:
@@ -162,15 +163,15 @@ class Task:
                         flatted_prediction, target_label_index, 2
                     ):
                         train_second_match += 1
-                train_total_loss += loss.item()
-
+                train_total_samples += len(labels)
+                train_total_loss += loss.item() * len(labels)
                 loop.set_description(
                     f"Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():>10.5}"
                 )
 
-            train_total_loss /= len(train_dataset)
-            train_first_acc = train_first_match / len(train_dataset)
-            train_second_acc = train_second_match / len(train_dataset)
+            train_total_loss /= train_total_samples
+            train_first_acc = train_first_match / train_total_samples
+            train_second_acc = train_second_match / train_total_samples
             logging.info(
                 f"Train - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {train_total_loss:>10.5}"
             )
@@ -182,6 +183,7 @@ class Task:
             val_first_match = 0
             val_second_match = 0
             val_total_loss = 0
+            val_total_samples = 0
 
             model.eval()
             with torch.no_grad():
@@ -203,11 +205,12 @@ class Task:
                             flatted_prediction, target_label_index, 2
                         ):
                             val_second_match += 1
-                    val_total_loss += loss.item()
+                    val_total_samples += len(labels)
+                    val_total_loss += loss.item() * len(labels)
 
-                val_total_loss /= len(validate_dataset)
-                val_first_acc = val_first_match / len(validate_dataset)
-                val_second_acc = val_second_match / len(validate_dataset)
+                val_total_loss /= val_total_samples
+                val_first_acc = val_first_match / val_total_samples
+                val_second_acc = val_second_match / val_total_samples
                 logging.info(
                     f"Validation - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {val_total_loss:>10.5}"
                 )
@@ -223,11 +226,12 @@ class Task:
             train_second_accuracies,
             val_second_accuracies,
         )
+
         # Evaluate after training
         model.eval()
         test_first_match = 0
         test_second_match = 0
-        total_samples = 0
+        test_total_samples = 0
         logging.info("Model Evaluating After Training ...")
         with torch.no_grad():
             for _, (labels, features) in enumerate(test_loader):
@@ -248,10 +252,10 @@ class Task:
                         flatted_prediction, target_label_index, 2
                     ):
                         test_second_match += 1
-                total_samples += len(labels)
+                test_total_samples += len(labels)
 
-        test_first_accuracy = test_first_match / total_samples
-        test_second_accuracy = test_second_match / total_samples
+        test_first_accuracy = test_first_match / test_total_samples
+        test_second_accuracy = test_second_match / test_total_samples
         logging.info(f"Accuracy after traning: {test_first_accuracy}")
 
         torch.save(
@@ -312,7 +316,7 @@ class Task:
         plt.legend()
 
         plt.tight_layout()
-        plt.savefig(f"{save_path}_learning_curves.png")
+        plt.savefig(f"{save_path}")
         plt.close()
 
 
