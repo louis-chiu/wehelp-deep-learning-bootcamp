@@ -168,15 +168,12 @@ class Task:
                     f"Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():>10.5}"
                 )
 
-                if i == len(train_loader) - 1:  # only write the last data into log file
-                    logging.info(
-                        f"Train - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():>10.5}"
-                    )
-
             train_total_loss /= len(train_dataset)
             train_first_acc = train_first_match / len(train_dataset)
             train_second_acc = train_second_match / len(train_dataset)
-
+            logging.info(
+                f"Train - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {train_total_loss:>10.5}"
+            )
             train_losses.append(train_total_loss)
             train_first_accuracies.append(train_first_acc)
             train_second_accuracies.append(train_second_acc)
@@ -208,13 +205,12 @@ class Task:
                             val_second_match += 1
                     val_total_loss += loss.item()
 
-                    logging.info(
-                        f"Validation - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {loss.item():>10.5}"
-                    )
-
                 val_total_loss /= len(validate_dataset)
                 val_first_acc = val_first_match / len(validate_dataset)
                 val_second_acc = val_second_match / len(validate_dataset)
+                logging.info(
+                    f"Validation - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {val_total_loss:>10.5}"
+                )
 
                 val_losses.append(val_total_loss)
                 val_first_accuracies.append(val_first_acc)
