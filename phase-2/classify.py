@@ -10,10 +10,10 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 
-BASE_PATH = ""
-PATH = f"{BASE_PATH}example-data.csv.pt"
-# BASE_PATH = "./0327-1503/"
-# PATH = f"{BASE_PATH}tokenized-title.pt"
+# BASE_PATH = ""
+# PATH = f"{BASE_PATH}example-data.csv.pt"
+BASE_PATH = "./0327-1503/"
+PATH = f"{BASE_PATH}tokenized-title-only-NAVFW.pt"
 # PATH = f"{BASE_PATH}tokenized-title-only-NAVFW.pt"
 VECTORIZED = True  # indicates if corpus has been vectorized already
 EMBEDDING_MODEL_PATH = f"{BASE_PATH}0402-0002-75-86.model"
@@ -67,9 +67,9 @@ class Task:
 
         logging.info(f"Training Using {device}")
         base_lr = 0.015
-        batch_size = 1
+        batch_size = 128
         learning_rate = base_lr * (batch_size**0.5)
-        epochs = 15
+        epochs = 500
         embedding_model = ModelUtils.setup_model_configuration(EMBEDDING_MODEL_PATH)
         logging.info(
             f"Model Configuration {batch_size=}, {learning_rate=}, {epochs=}, {PATH=}"
@@ -168,9 +168,6 @@ class Task:
                     train_second_match += second_match
                     train_total_samples += len(labels)
                     train_total_loss += loss.item() * len(labels)
-            logging.info(
-                f"Train - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {train_total_loss:>10.5}"
-            )
 
             if epoch in validation_epochs:
                 train_total_loss /= train_total_samples
@@ -180,6 +177,9 @@ class Task:
                 train_losses.append(train_total_loss)
                 train_first_accuracies.append(train_first_acc)
                 train_second_accuracies.append(train_second_acc)
+                logging.info(
+                    f"Train - Batch Size {batch_size}, RL {learning_rate}, Epoch [{epoch + 1}/{epochs}] Loss {train_total_loss:>10.5f}"
+                )
 
             # Validation
             if epoch in validation_epochs:
