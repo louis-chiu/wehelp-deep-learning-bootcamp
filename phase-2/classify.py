@@ -41,9 +41,16 @@ class ClassificationNetwork(nn.Module):
         super(ClassificationNetwork, self).__init__()
 
         self.model = nn.Sequential(
-            nn.Linear(64, 32),
+            nn.Linear(64, 128),
             nn.ReLU(),
-            nn.Linear(32, 9),
+            nn.Dropout(0.3),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 16),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(16, 9),
         )
 
     def forward(self, x):
