@@ -31,15 +31,15 @@
  5. **Algorithms for Back-Propagation:** AdamW
  6. **Total Number of Training Documents:** 819,080 (80% of  1,023,851)
  7. **Total Number of Testing Documents:** 102,386 (10% of 1,023,851)
- 8. Epochs: 43/500 (early stop)
+ 8. **Epochs:** 43/500 (early stop)
      
      Learning Rate: 0.001 
      
- 9. First Match: 87.30%
+ 9. **First Match:** 87.30%
      
-     Second Match: 94.42%
+     **Second Match:** 94.42%
      
- 10. Any other parameters you think are important.
+ 10. **Any other parameters you think are important.**
      - Batch Size: 128
      - Layers:
          - `Linear(64, 256)`
