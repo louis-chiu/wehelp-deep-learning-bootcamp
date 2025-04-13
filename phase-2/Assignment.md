@@ -27,7 +27,7 @@
  1. **Arrangement of Linear Layers:**  $64 \times 256 \times 128 \times 64 \times 32 \times 9$
  2.  **Activation Function for Hidden Layers:** Linear, ReLU
  3.  **Activation Function for Output Layers:** Softmax
- 4. **Loss Function: **Categorical Cross Entropy
+ 4. **Loss Function:** Categorical Cross Entropy
  5. **Algorithms for Back-Propagation:** AdamW
  6. **Total Number of Training Documents:** 819,080 (80% of  1,023,851)
  7. **Total Number of Testing Documents:** 102,386 (10% of 1,023,851)
