@@ -51,11 +51,11 @@ class ClassificationNetwork(nn.Module):
         super(ClassificationNetwork, self).__init__()
 
         self.model = nn.Sequential(
-            nn.Linear(64, 128),
-            nn.BatchNorm1d(128),
+            nn.Linear(64, 256),
+            nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(128, 128),
+            nn.Linear(256, 128),
             nn.BatchNorm1d(128),
             nn.ReLU(),
             nn.Linear(128, 64),
@@ -319,7 +319,13 @@ class Classifier:
 
     @staticmethod
     @torch.no_grad()
-    def evaluate(model, test_loader, TAG_MAPPING):
+    def evaluate(
+        model,
+        test_loader,
+        TAG_MAPPING,
+        topk_pred_labels_dict=None,
+        target_labels=None,
+    ):
         test_first_match = 0
         test_second_match = 0
         test_total_samples = 0
@@ -332,6 +338,12 @@ class Classifier:
             first_match, second_match = Classifier.calculate_top_k_accuracy(
                 prediction, labels, TAG_MAPPING, DEVICE
             )
+
+            if topk_pred_labels_dict is not None and target_labels is not None:
+                # for confusion matrix
+                topk_pred_labels_dict[1].extend(prediction.topk(1).indices)
+                topk_pred_labels_dict[2].extend(prediction.topk(2).indices)
+                target_labels.extend(labels)
 
             test_first_match += first_match
             test_second_match += second_match
