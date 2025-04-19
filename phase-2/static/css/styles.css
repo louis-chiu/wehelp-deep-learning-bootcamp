@@ -1,0 +1,84 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: 'LXGW WenKai Mono TC', monospace;
+  font-weight: 500;
+  font-style: normal;
+}
+
+header {
+  display: flex;
+  align-self: center;
+  justify-content: center;
+  background: #1543;
+  padding: 2rem 0;
+}
+
+main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 2rem 0;
+  gap: 1rem;
+}
+
+.prediction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.input {
+  height: 2.5rem;
+  max-width: 90%;
+  min-width: 36rem;
+  border-radius: 8px;
+  padding: 2px;
+  font-size: 1.05rem;
+}
+
+button {
+  height: 2.75rem;
+  width: 10rem;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.feedback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  margin: 1rem;
+  gap: 1rem;
+}
+
+.options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.result {
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.feedback-prompt {
+  color: gray;
+  cursor: pointer;
+}

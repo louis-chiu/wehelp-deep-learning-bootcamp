@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Item Details</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+Mono+TC&family=Noto+Sans+TC:wght@300;400;500&family=Roboto+Mono&display=swap" rel="stylesheet">
+  <link href="{{ url_for("static", path="/css/styles.css")}}" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1 class="title">
+      歡迎使用短文本分類預測
+    </h1>
+  </header>
+  <main>
+       
+      <form class="prediction">
+        <h3>輸入一篇文章的標題</h3>
+        <input class="input" type="text" id="title" name="title"/>
+        <button class="btn__submit" type="submit">預測分類</button>
+        <p class="result hidden">預測結果: {{ somthing }}</p>
+      </form>
+
+      <p class="feedback-prompt hidden">給點回饋？</p>
+
+      <form class="feedback hidden">
+        <p>選擇您認為更正確的分類</p>
+        <ul class="options">
+  
+        </ul>
+      </form>
+
+  </main>
+
+  <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+</body>
+</html>
