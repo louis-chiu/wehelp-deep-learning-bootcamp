@@ -10,10 +10,10 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-# BASE_PATH = ".example-data-output/"
-# PATH = f"{BASE_PATH}example-data.csv.pt"
-BASE_PATH = "./0327-1503/"
-PATH = f"{BASE_PATH}tokenized-title.pt"
+BASE_PATH = ".example-data-output/"
+PATH = f"{BASE_PATH}example-data.csv.pt"
+# BASE_PATH = "./0327-1503/"
+# PATH = f"{BASE_PATH}tokenized-title.pt"
 # PATH = f"{BASE_PATH}tokenized-title-only-NAVFW.pt"
 VECTORIZED = True  # indicates if corpus has been vectorized already
 
@@ -25,7 +25,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 BATCH_SIZE = 128
 LEARNING_RATE = 0.001
-EPOCHS = 500
+EPOCHS = 5
 
 
 class PTTDataset(Dataset):
@@ -48,7 +48,7 @@ class PTTDataset(Dataset):
 
 class ClassificationNetwork(nn.Module):
     def __init__(self):
-        super(ClassificationNetwork, self).__init__()
+        super().__init__()
 
         self.model = nn.Sequential(
             nn.Linear(64, 256),
