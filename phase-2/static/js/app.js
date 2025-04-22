@@ -3,6 +3,12 @@ const hiddenPrediction = () => {
   resultTag.classList.add('hidden');
 };
 
+const displayHandlingPrediction = () => {
+  const resultTag = document.querySelector('.result');
+  resultTag.classList.remove('hidden');
+  resultTag.innerText = `預測中...`;
+};
+
 const displayPrediction = (result) => {
   const resultTag = document.querySelector('.result');
   resultTag.classList.remove('hidden');
@@ -67,6 +73,7 @@ const registerPredictionSubmit = () => {
     event.preventDefault();
     const title = document.querySelector('.input').value;
 
+    displayHandlingPrediction();
     const { prediction } = await predictTitleBelongsTo(title);
     displayPrediction(prediction);
 
