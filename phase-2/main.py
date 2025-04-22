@@ -11,8 +11,8 @@ from ckip_transformers.nlp import CkipWordSegmenter, CkipPosTagger
 
 from typing import cast
 
-EMBEDDING_MODEL_PATH = "0402-0002-75-86.model"
-CLASSIFICATION_MODEL_PATH = "0414-1830-88-95.classify.model"
+EMBEDDING_MODEL_PATH = "0421-2228-89-96.model"
+CLASSIFICATION_MODEL_PATH = "0422-2333-94-98.classify.model"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 embedding_model = ModelUtils.setup_model_configuration(EMBEDDING_MODEL_PATH)
@@ -42,39 +42,40 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
+
 @app.get("/api/model/prediction")
 async def get_classification(title: str):
     ws = WS_DRIVER([title])
     ws = WS_DRIVER([title])
     pos = POS_DRIVER(ws)
     tokenized_title = tokenize(ws[0], pos[0], False)
-    vectorized_title = CorpusUtils.vectorize(cast(list[str], tokenized_title), embedding_model).to(DEVICE)
-    
+    vectorized_title = CorpusUtils.vectorize(
+        cast(list[str], tokenized_title), embedding_model
+    ).to(DEVICE)
+
     if vectorized_title.dim() == 1:
         vectorized_title = vectorized_title.unsqueeze(0)
-    
+
     prediction: torch.Tensor = model(vectorized_title)
     prediction_label = TAG_MAPPING.get(prediction.argmax().item())
-    return {
-        "prediction": prediction_label
-    }
+    return {"prediction": prediction_label}
+
 
 @app.post("/api/model/feedback")
 async def submit_feedback(title: str, label: str):
     with open("user-labeled-titles.csv", "a") as file:
         file.write(f"{label}, {title}\n")
-    
+
     return {
         "message": f"感謝您的回饋！\n已接收到反饋: 標題 '{title}' 應該歸類為 '{label}'"
     }
+
 
 @app.get("/api/model/boards")
 async def get_boards():
     return [board for board in BOARD_NAMES]
 
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html"
-    )
+    return templates.TemplateResponse(request=request, name="index.html")
