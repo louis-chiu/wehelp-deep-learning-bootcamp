@@ -46,19 +46,24 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/api/model/prediction")
 async def get_classification(title: str):
     ws = WS_DRIVER([title])
-    ws = WS_DRIVER([title])
     pos = POS_DRIVER(ws)
-    tokenized_title = tokenize(ws[0], pos[0], False)
-    vectorized_title = CorpusUtils.vectorize(
-        cast(list[str], tokenized_title), embedding_model
-    ).to(DEVICE)
 
-    if vectorized_title.dim() == 1:
-        vectorized_title = vectorized_title.unsqueeze(0)
+    with torch.no_grad():
+        tokenized_title = tokenize(ws[0], pos[0], False)
+        vectorized_title = CorpusUtils.vectorize(
+            cast(list[str], tokenized_title), embedding_model
+        ).to(DEVICE)
 
-    prediction: torch.Tensor = model(vectorized_title)
+        if vectorized_title.dim() == 1:
+            vectorized_title = vectorized_title.unsqueeze(0)
+
+        prediction: torch.Tensor = model(vectorized_title)
+
     prediction_label = TAG_MAPPING.get(prediction.argmax().item())
-    return {"prediction": prediction_label}
+    # 增加預測信心值
+    confidence = torch.softmax(prediction, dim=1).max().item()
+
+    return {"prediction": prediction_label, "confidence": round(confidence, 4)}
 
 
 @app.post("/api/model/feedback")
