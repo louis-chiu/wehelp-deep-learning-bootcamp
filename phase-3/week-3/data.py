@@ -23,14 +23,12 @@ class Dictionary(object):
         return len(self.idx2word)
 
 
-# 載入 JSON 資料
 def load_paragraphs_from_json(json_path: str):
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     return [p for chapter in data for p in chapter["paragraphs"]]
 
 
-# 寫入輸出檔案
 def write_output(ws_list, output_dir):
     txt_path = os.path.join(output_dir, "corpus.txt")
 
@@ -51,11 +49,10 @@ class CorpusDataset(Dataset):
         self.seq_len = seq_len
 
     def tokenize(self):
-        """Tokenizes a text file."""
         device = 0 if torch.cuda.is_available() else -1
         ws_driver = CkipWordSegmenter(model="bert-base", device=device)
 
-        paragraphs = load_paragraphs_from_json(self.path)  # JSON 路徑
+        paragraphs = load_paragraphs_from_json(self.path)
         batch_size = 32
 
         ws_list = ws_driver(paragraphs, batch_size=batch_size)

@@ -91,7 +91,7 @@ def train():
         pin_memory=True,
     )
 
-    ntokens = len(dataset.dictionary)  # 詞彙表大小
+    ntokens = len(dataset.dictionary)
 
     model = TransformerModel(ntokens, emsize, nhead, nhid, nlayers, dropout).to(device)
 

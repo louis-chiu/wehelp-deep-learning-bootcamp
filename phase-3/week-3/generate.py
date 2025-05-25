@@ -6,7 +6,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 with open("model/model.pt", "rb") as f:
     checkpoint = torch.load(f, map_location=device, weights_only=False)
-    # 從checkpoint重建模型
 
     model = TransformerModel(
         checkpoint["config"]["vocab_size"],
@@ -32,8 +31,8 @@ for i in range(1, 6):
 
     first_word = dictionary.idx2word[word_idx]
 
-    with torch.no_grad():  # no tracking history
-        temperature = 0.8
+    with torch.no_grad():
+        temperature = 0.7
         result = [first_word]
         word = ""
         while word != "<eos>":
